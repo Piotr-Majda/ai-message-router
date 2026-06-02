@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      target: app
+    ports: 
+      - "8000:80"
+    environment:
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+  mailhog:
+      image: mailhog/mailhog
+      container_name: 'mailhog'
+      ports:
+        - "1025:1025"
+        - "8025:8025"

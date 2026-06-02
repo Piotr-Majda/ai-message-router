@@ -1,0 +1,23 @@
+[project]
+name = "ai-message-router"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.136.3",
+    "httpx>=0.28.1",
+    "mailhog>=0.1.1",
+    "pydantic>=2.13.4",
+    "pydantic-ai>=1.104.0",
+    "pydantic-settings>=2.14.1",
+    "pytest>=9.0.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "-vvs -m \"not smoke\""
+markers = [
+    "integration: integration tests (router/service interactions)",
+    "smoke: end-to-end tests (docker-compose wiring)",
+]
