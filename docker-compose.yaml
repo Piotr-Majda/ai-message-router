@@ -8,9 +8,21 @@ services:
     environment:
       - SMTP_HOST=mailhog
       - SMTP_PORT=1025
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/v1/docs"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
   mailhog:
       image: mailhog/mailhog
       container_name: 'mailhog'
       ports:
         - "1025:1025"
         - "8025:8025"
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8025/api/v2/messages"]
+        interval: 2s
+        timeout: 5s
+        retries: 15
+        start_period: 5s
