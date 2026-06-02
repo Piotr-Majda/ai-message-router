@@ -30,7 +30,7 @@ jobs:
         run: uv run pytest
 
       - name: Start docker compose stack
-        run: docker compose up -d --build --wait --wait-timeout 60
+        run: docker compose up -d --build --wait --wait-timeout 120
 
       - name: Run smoke tests
         env:
