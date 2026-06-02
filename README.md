@@ -47,11 +47,14 @@ Endpoints:
 - MailHog UI: `http://localhost:8025`
 
 ### Environment variables
-The API reads SMTP settings from environment variables:
-- `smtp_host` (in compose this is `mailhog`)
-- `smtp_port` (in compose this is `1025`)
-- `smtp_username` (optional)
-- `smtp_password` (optional)
+The API reads SMTP settings from environment variables (with local defaults):
+
+| Variable | Default | Notes |
+|----------|---------|--------|
+| `SMTP_HOST` | `localhost` | In compose: `mailhog` |
+| `SMTP_PORT` | `1025` | MailHog SMTP port |
+| `smtp_username` | — | Optional |
+| `smtp_password` | — | Optional |
 
 ## API
 ### POST `/api/v1/messages`

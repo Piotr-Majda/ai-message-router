@@ -6,6 +6,8 @@ from typing import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.v1.dependencies import email_service
+from app.main import app
 
 @dataclass
 class Outbox:
@@ -34,12 +36,7 @@ def outbox() -> Outbox:
 
 @pytest.fixture()
 def api_client(outbox: Outbox) -> Iterator[TestClient]:
-    # Keep tests as black-box as practical:
-    # - tests import only this fixture
-    # - app + dependency overrides live here
-    from app.api.v1.dependencies import email_service
-    from app.main import app
-
+    
     app.dependency_overrides[email_service] = lambda: RecordingEmailService(outbox)
     try:
         yield TestClient(app)
@@ -49,9 +46,6 @@ def api_client(outbox: Outbox) -> Iterator[TestClient]:
 
 @pytest.fixture()
 def api_client_with_failing_smtp() -> Iterator[TestClient]:
-    from app.api.v1.dependencies import email_service
-    from app.main import app
-
     app.dependency_overrides[email_service] = lambda: FailingEmailService()
     try:
         yield TestClient(app)
