@@ -30,12 +30,12 @@ jobs:
         run: uv run pytest
 
       - name: Start docker compose stack
-        run: docker compose up -d --build
+        run: docker compose up -d --build --wait --wait-timeout 60
 
       - name: Run smoke tests
         env:
-          SMOKE_BASE_URL: http://localhost:8000
-          SMOKE_MAILHOG_API: http://localhost:8025
+          SMOKE_BASE_URL: http://127.0.0.1:8000
+          SMOKE_MAILHOG_API: http://127.0.0.1:8025
         run: uv run pytest -m smoke
 
       - name: Show compose logs on failure
