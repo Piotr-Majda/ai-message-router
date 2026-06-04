@@ -1,66 +1,71 @@
 # AI Message Router (PoC)
 
-Microservice PoC that receives user messages over HTTP, classifies/routes them (agent planned), and sends an email to a target department via SMTP.
+HTTP API that routes employee messages to a department email using a local LLM (Ollama) and sends mail via SMTP. MailHog is used locally to capture messages.
 
-This project is designed to be easy to evolve: small modules, dependency injection, and replaceable adapters (SMTP now, AI Agent later).
+## What it does
 
-## What the API is intended to do
-- Accept a user request with:
-  - `email`: sender email
-  - `message`: free-form text
-- Validate the input (basic prompt-injection guard)
-- Route the message to a target department email (currently a placeholder, agent-based routing planned)
-- Send an email through SMTP (captured by MailHog in local env)
-- Set `Reply-To` to the original sender address
+- Accept `email` and `message`
+- Validate input
+- Classify with an agent and pick a department address
+- Send email (Reply-To = sender)
+- Return `status`, `recipient`, `reply_to`
 
-## Architecture (high-level)
-The code is intentionally modular and dependency-injected to keep it SOLID/KISS and testable.
+## Layout
 
-- **API / Router layer** (`app/api/v1/*`)
-  - Owns HTTP concerns: request/response, validation errors, mapping to internal models
-  - Delegates side effects through injected dependencies
-- **Services layer** (`app/services/*`)
-  - Owns application/business behavior and external I/O adapters (e.g. SMTP)
-  - Small interfaces (e.g. `EmailService`) make implementations swappable (MailHog/SMTP provider)
-- **Models** (`app/models/*`)
-  - Typed request and message models (Pydantic)
+- `app/api/v1` — HTTP routes and dependencies
+- `app/services` — orchestration (`EmailRouterService`) and SMTP
+- `app/agent` — routing agent (Pydantic AI, structured output to `DepartmentEmail`)
+- `app/domain` — routing rules and prompts
+- `app/models` — request types
+- `app/exceptions` — errors with HTTP status codes
 
-Design goal: changing SMTP implementation or adding an AI agent should require minimal changes at the edges, without rewriting the endpoint tests.
+Flow: API → `EmailRouterService` → agent + SMTP.
 
-## Current scope
-- **API + MailHog**: implemented and wired in `docker-compose.yaml`.
-- **Ollama + AI Agent/tool calling**: planned next step (compose + routing implementation).
+## Run with Docker
 
-## Quick start (Docker Compose)
-Prerequisites:
-- Docker + Docker Compose
-
-Start services:
+Needs Docker and Docker Compose.
 
 ```bash
 docker compose up -d --build
 ```
 
-Endpoints:
-- API: `http://localhost:8000`
-- Swagger/OpenAPI: `http://localhost:8000/api/v1/docs`
-- MailHog UI: `http://localhost:8025`
+First start pulls the Ollama model (`llama3.2:3b` by default). This can take a while on CPU.
 
-### Environment variables
-The API reads SMTP settings from environment variables (with local defaults):
+Another model:
+
+```bash
+MODEL_NAME=llama3.2:1b docker compose up -d --build
+```
+
+Or set `MODEL_NAME` in `.env`.
+
+- API: http://localhost:8000
+- Docs: http://localhost:8000/api/v1/docs
+- MailHog: http://localhost:8025
+- Ollama: http://localhost:11434
+
+### Environment
 
 | Variable | Default | Notes |
 |----------|---------|--------|
-| `SMTP_HOST` | `localhost` | In compose: `mailhog` |
-| `SMTP_PORT` | `1025` | MailHog SMTP port |
-| `smtp_username` | — | Optional |
-| `smtp_password` | — | Optional |
+| SMTP_HOST | localhost | mailhog in compose |
+| SMTP_PORT | 1025 | |
+| MODEL_BASE_URL | http://localhost:11434/v1 | ollama service in compose |
+| MODEL_NAME | llama3.2:3b | pulled before app starts |
+| LOGFIRE_ENABLED | false | |
+| LOGFIRE_TOKEN | | needed when Logfire is on |
+
+After editing `.env`:
+
+```bash
+docker compose up -d --no-deps --force-recreate app
+```
+
+Logfire is optional. Set `LOGFIRE_ENABLED=true` and `LOGFIRE_TOKEN` in `.env` to trace FastAPI, the agent, and httpx calls to Ollama. Useful when checking agent input/output during development. Off by default so compose works without an account.
 
 ## API
-### POST `/api/v1/messages`
-Accepts a message and sends an email via SMTP.
 
-Request body:
+POST `/api/v1/messages`
 
 ```json
 {
@@ -69,7 +74,7 @@ Request body:
 }
 ```
 
-Success response (200):
+200 response:
 
 ```json
 {
@@ -79,13 +84,9 @@ Success response (200):
 }
 ```
 
-Validation error (422):
-- Returned by FastAPI/Pydantic when input is invalid or rejected by the message validator.
+422 — invalid input. 503 — agent failure (`AgentUnavailable`). 500 — SMTP or other server error.
 
-Server error (500):
-- Returned when the SMTP adapter fails (connection/auth/etc).
-
-### cURL example (copy/paste)
+Example:
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/messages" ^
@@ -94,39 +95,32 @@ curl -X POST "http://localhost:8000/api/v1/messages" ^
 ```
 
 ## Tests
-This repo intentionally has multiple test layers.
 
-### Integration tests (default)
-Run the integration suite (fast, no Docker required):
+Integration (default, no Docker):
 
 ```bash
 uv run pytest
 ```
 
-These tests focus on:
-- router behavior (validation + response contract + error mapping)
-- SMTP adapter behavior in isolation (fake SMTP transport)
-
-### Smoke / end-to-end tests (explicit)
-Smoke tests verify the running stack (API + MailHog) and are **not executed by default**.
-
-1) Start compose:
+Smoke (needs running compose + Ollama):
 
 ```bash
 docker compose up -d --build
-```
-
-2) Run smoke tests:
-
-```bash
 uv run pytest -m smoke
 ```
 
-Optional overrides:
-- `SMOKE_BASE_URL` (default `http://localhost:8000`)
-- `SMOKE_MAILHOG_API` (default `http://localhost:8025`)
+Optional: `SMOKE_BASE_URL`, `SMOKE_MAILHOG_API`.
 
-## Architectural decisions (why)
-- **Dependency injection everywhere it matters**: makes it easy to swap adapters (SMTP provider, agent/router implementation) and to test behavior without fragile monkeypatching across the app.
-- **Thin routers, focused services**: routers handle HTTP boundaries; services handle the work. This keeps responsibilities clear and prevents “god endpoints”.
-- **Typed models and explicit error behavior**: predictable request/response contracts and safer refactors.
+## Why it is built this way
+
+Pydantic AI — same stack as the API (FastAPI + Pydantic models). One way to define request types, agent output, and validation.
+
+Structured output — the agent returns a `DepartmentEmail` Pydantic model (`output_type=...`), not free-form text. That keeps the recipient on the allowed list and makes routing results consistent. Pydantic AI may use internal mechanisms (including its own “tools”) to validate structured output against the schema; that is framework internals, not a user-facing “send email” tool. Email is sent by `EmailRouterService` via SMTP after classification.
+
+Logfire — optional tracing for FastAPI and the agent while testing routing behaviour. Disabled by default.
+
+Exceptions with status codes — e.g. `AgentUnavailable` maps to 503 so HTTP status is defined on the error type, not scattered in handlers.
+
+Default model `llama3.2:3b` — smaller and faster to pull and run on CPU than larger models. Routing is a short classification task; bigger models are slower with limited gain here. Prompt rules in `app/domain/constants.py` aim to keep routing accurate without a heavy model. Change `MODEL_NAME` to try others.
+
+Service layer — `EmailRouterService` coordinates agent and email. Dependencies are injected so tests can use fakes without patching the app internals.

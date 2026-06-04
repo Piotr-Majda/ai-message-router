@@ -14,7 +14,7 @@ def validate_message(message: str) -> str:
         raise ValueError("message rejected: potential prompt-injection content")
     return message
 
-class SendMessage(BaseModel):
+class UserMessage(BaseModel):
     email: EmailStr
     message: Annotated[str, BeforeValidator(validate_message)]
 

@@ -19,8 +19,12 @@ class Config(BaseSettings):
     # Defaults match local MailHog; override via env in Docker/production.
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[str] = None
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    MODEL_BASE_URL: str = "http://localhost:11434/v1"
+    MODEL_NAME: str = "llama3.2:3b"
+    LOGFIRE_ENABLED: bool = False
+    LOGFIRE_TOKEN: Optional[str] = None
 
 
 config = Config() # type: ignore[call-arg]

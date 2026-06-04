@@ -7,6 +7,7 @@ requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.136.3",
     "httpx>=0.28.1",
+    "logfire[fastapi,httpx]>=4.34.0",
     "mailhog>=0.1.1",
     "pydantic>=2.13.4",
     "pydantic-ai>=1.104.0",
