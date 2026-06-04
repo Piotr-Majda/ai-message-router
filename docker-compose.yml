@@ -1,0 +1,70 @@
+services:
+  app:
+    build:
+      context: .
+      target: app
+    ports:
+      - "8000:80"
+    environment:
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      MODEL_BASE_URL: http://ollama:11434/v1
+      MODEL_NAME: ${MODEL_NAME:-llama3.2:3b}
+      LOGFIRE_ENABLED: ${LOGFIRE_ENABLED:-false}
+      LOGFIRE_TOKEN: ${LOGFIRE_TOKEN:-}
+    depends_on:
+      mailhog:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/v1/docs"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8025/api/v2/messages"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+
+  ollama-pull:
+    image: ollama/ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      MODEL_NAME: ${MODEL_NAME:-llama3.2:3b}
+    entrypoint: >
+      sh -c "
+      ollama pull $$MODEL_NAME
+      "
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: "no"
+
+volumes:
+  ollama_data:
