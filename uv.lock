@@ -22,10 +22,14 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "logfire", extra = ["fastapi", "httpx"] },
-    { name = "mailhog" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "pytest" },
 ]
 
@@ -34,12 +38,14 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "logfire", extras = ["fastapi", "httpx"], specifier = ">=4.34.0" },
-    { name = "mailhog", specifier = ">=0.1.1" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-ai", specifier = ">=1.104.0" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
-    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "uvicorn", specifier = ">=0.48.0" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "aiofile"
@@ -469,15 +475,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/34/07/bf61d13de86d96a4c46aff00c9ca0eced44bcc8c3e16280605c1253e5720/cyclopts-4.16.1.tar.gz", hash = "sha256:8aa47bf92a5fb33abca5af05e576eecdb0d2f79893ad29238046df78370fc4a8", size = 181196, upload-time = "2026-05-25T15:29:08.518Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/8d/7f362c2fb8ef4decd2160bc24d4292c6ca658cc6d9a161b89ca5122bbdbf/cyclopts-4.16.1-py3-none-any.whl", hash = "sha256:617795392c4113a2c2cc7af716f20244900e87f23daa05442d1268d81472a592", size = 219020, upload-time = "2026-05-25T15:29:09.646Z" },
-]
-
-[[package]]
-name = "dataclass-wizard"
-version = "0.22.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2f/c8/8682aa0202355aca0e1f25a16199426f8b65f32c185c67a85046f5d35f28/dataclass-wizard-0.22.3.tar.gz", hash = "sha256:4c46591782265058f1148cfd1f54a3a91221e63986fdd04c9d59f4ced61f4424", size = 163981, upload-time = "2024-01-29T17:50:28.451Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/3a/48b6a1a5d45dcf4a7c442c3b9240be617fe8e95dd2b2ee1382e429d3dd66/dataclass_wizard-0.22.3-py2.py3-none-any.whl", hash = "sha256:63751203e54b9b9349212cc185331da73c1adc99c51312575eb73bb5c00c1962", size = 90927, upload-time = "2024-01-29T17:50:26.069Z" },
 ]
 
 [[package]]
@@ -1170,19 +1167,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/48/bf/58dca8e1df9deb11ebeeaeae5f8a992e8020d9036b25a03f9f24a3f7d16d/logfire_api-4.34.0.tar.gz", hash = "sha256:fcaeb3da0895c39a5e66caef25ffbe41b2e61918ed40fbc863ae98e2b4c82241", size = 82736, upload-time = "2026-05-26T18:09:53.307Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/97/b9/639818adb83dad11e9b21b4ad1906883b98732b06959257e33f7d7f14db9/logfire_api-4.34.0-py3-none-any.whl", hash = "sha256:ca51498bb60e1e4505c90cc20f949d2d6dcf9d15cf5fd5a46f14016f2f638c4c", size = 130718, upload-time = "2026-05-26T18:09:50.551Z" },
-]
-
-[[package]]
-name = "mailhog"
-version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dataclass-wizard" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/41/45/27db1a209cda3512362c95e5d6236b307592ab4668e11371b24c3ae75794/mailhog-0.1.1.tar.gz", hash = "sha256:1ab4e9662ee2ae1a73493c208df53d4f2ae3b1c5120648129d2a97a14eea4a93", size = 4270, upload-time = "2024-05-05T18:16:52.433Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/75/2b479d173107ad69e553011264542ce0109156b0db6c2656b1ad4b27c2f4/mailhog-0.1.1-py3-none-any.whl", hash = "sha256:e9e798b4cbdab8df87bb23ba9e39bd67c1e9026e1020f05d1e045afda708429f", size = 6050, upload-time = "2024-05-05T18:16:50.94Z" },
 ]
 
 [[package]]
