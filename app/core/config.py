@@ -14,8 +14,8 @@ class Config(BaseSettings):
         env_file_encoding="utf-8",
     )
 
-    app_name: str = "AIMessageRouter"
-    debug: bool = False
+    APP_NAME: str = "AIMessageRouter"
+    DEBUG: bool = False
     # Defaults match local MailHog; override via env in Docker/production.
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025

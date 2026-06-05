@@ -13,7 +13,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN uv sync
+RUN uv sync --no-dev
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
@@ -24,5 +24,7 @@ EXPOSE 80
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
 
 FROM base AS test
+
+RUN uv sync --group dev
 
 CMD ["uv", "run", "pytest"]

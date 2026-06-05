@@ -100,5 +100,11 @@ def departments_prompt() -> str:
         "- Return exactly one email address.",
         "- Do not explain your reasoning.",
         "- Do not add any extra text.",
+        "Output examples:",
+        f"- {HELP_DESK_EMAIL}",
+        f"- {IT_EMAIL}",
+        f"- {KADRY_EMAIL}",
+        f"- {HR_EMAIL}",
+        f"- {FALLBACK_EMAIL}"
     ]
     return "\n".join(lines)

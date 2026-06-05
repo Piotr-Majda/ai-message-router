@@ -12,7 +12,7 @@ HTTP API that routes employee messages to a department email using a local LLM (
 
 ## Layout
 
-- `app/api/v1` — HTTP routes and dependencies
+- `app/api/v1` — HTTP routes (`messages.py`) and dependencies
 - `app/services` — orchestration (`EmailRouterService`) and SMTP
 - `app/agent` — routing agent (Pydantic AI, structured output to `DepartmentEmail`)
 - `app/domain` — routing rules and prompts

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, ConfigDict
 from pydantic_ai import Agent, AgentRunError
 from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.providers.ollama import OllamaProvider
@@ -19,6 +19,7 @@ def validate_proper_email(email: str) -> str:
 
 
 class DepartmentEmail(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     email: Annotated[str, BeforeValidator(validate_proper_email)]
 
 

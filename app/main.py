@@ -19,13 +19,13 @@ if _logfire_on:
     logfire.instrument_pydantic_ai()
     logfire.instrument_httpx(capture_all=True)
 
-from app.api.v1.ai_agent import router as ai_agent
+from app.api.v1.messages import router as messages_router
 from app.core.logging import setup_logging
 
-logger = setup_logging(config.app_name)
+logger = setup_logging(config.APP_NAME)
 
 app = FastAPI(docs_url="/api/v1/docs")
-app.include_router(ai_agent, prefix="/api/v1")
+app.include_router(messages_router, prefix="/api/v1")
 
 if _logfire_on:
     logfire.instrument_fastapi(app)
@@ -54,7 +54,7 @@ async def handle_logging(request: Request, call_next):
     response.body_iterator = iterate_in_threadpool(iter(res_body))
 
     logger.info("Response: %s %s returned %s to %s", method, url, status_code, client_ip)
-    if res_body:
+    if res_body and config.DEBUG:
         res_body = res_body[0].decode()
         logger.info("Response body: \n%s", res_body)
     return response
