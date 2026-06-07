@@ -24,10 +24,12 @@ The agent may route to one of:
 
 - `app/api/v1` — HTTP routes (`messages.py`) and dependencies
 - `app/agent` — `EmailAgent`, tool calling, `EmailAgentProtocol`
+- `app/core` — config and logging
 - `app/services` — SMTP (`EmailService` / `SMTPEmailService`)
 - `app/domain` — `Department` enum and agent prompt (`INSTRUCTIONS`)
 - `app/models` — request and email types
 - `app/exceptions` — errors with HTTP status codes
+- `tests/routing_cases.py` — shared routing scenarios for smoke and integration tests
 
 Flow: API → agent (tool) → SMTP.
 
@@ -38,18 +40,18 @@ The HTTP handler calls `EmailAgentProtocol.route_and_send()` directly. There is 
 Needs Docker and Docker Compose.
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-First start pulls the Ollama model (`llama3.2:3b` by default). This can take a while on CPU.
+First start builds the app image and pulls the Ollama model (`llama3.1:8b` by default). This can take a while on CPU.
 
 Another model:
 
 ```bash
-MODEL_NAME=llama3.1:8b docker compose up -d --build
+MODEL_NAME=llama3.2:3b docker compose up -d --build
 ```
 
-Or set `MODEL_NAME` in `.env`.
+Or set `MODEL_NAME` in `.env` (Compose reads `.env` for variable substitution).
 
 - API: http://localhost:8000
 - Docs: http://localhost:8000/api/v1/docs
@@ -58,25 +60,33 @@ Or set `MODEL_NAME` in `.env`.
 
 ### Environment
 
-| Variable | Default | Notes |
-|----------|---------|--------|
-| SMTP_HOST | localhost | `mailhog` inside compose |
-| SMTP_PORT | 1025 | |
-| SMTP_USERNAME | | optional |
-| SMTP_PASSWORD | | optional |
-| MODEL_BASE_URL | http://localhost:11434/v1 | `http://ollama:11434/v1` in compose |
-| MODEL_NAME | llama3.2:3b | pulled by `ollama-pull` before app starts |
-| LOGFIRE_ENABLED | false | |
-| LOGFIRE_TOKEN | | required when Logfire is on |
-| DEBUG | false | logs response bodies when true |
+| Variable | Default (local `uv run`) | In Docker Compose |
+|----------|--------------------------|-------------------|
+| SMTP_HOST | localhost | `mailhog` |
+| SMTP_PORT | 1025 | 1025 |
+| SMTP_USERNAME | (empty) | not set |
+| SMTP_PASSWORD | (empty) | not set |
+| MODEL_BASE_URL | http://localhost:11434/v1 | http://ollama:11434/v1 |
+| MODEL_NAME | llama3.1:8b | llama3.1:8b (override via `.env` or shell) |
+| LOGFIRE_ENABLED | false | from `.env` / shell (`${LOGFIRE_ENABLED:-false}`) |
+| LOGFIRE_TOKEN | (empty) | from `.env` / shell |
+| DEBUG | false | not passed to the app container by default |
 
 After editing `.env`:
 
-```bash
-docker compose up -d --no-deps --force-recreate app
-```
+- **App-only settings** (e.g. `LOGFIRE_*`): recreate the app service:
 
-Logfire is optional. Set `LOGFIRE_ENABLED=true` and `LOGFIRE_TOKEN` in `.env` to trace FastAPI, the agent, and httpx calls to Ollama. Off by default so compose works without an account.
+  ```bash
+  docker compose up -d --no-deps --force-recreate app
+  ```
+
+- **`MODEL_NAME` change**: rebuild so `ollama-pull` runs again and the app gets the new value:
+
+  ```bash
+  docker compose up -d --build
+  ```
+
+Logfire is optional. Set `LOGFIRE_ENABLED=true` and `LOGFIRE_TOKEN` in `.env` to trace FastAPI, Pydantic AI, and httpx calls to Ollama. Disabled by default so compose works without an account.
 
 ## API
 
@@ -101,7 +111,7 @@ POST `/api/v1/messages`
 
 - **422** — invalid input (bad email, rejected message content)
 - **503** — agent failure (`AgentUnavailable`, `AgentFailedRouteMessage` when the send tool was not called)
-- **500** — SMTP failure (`EmailDeliveryFailed`) or other server error
+- **500** — SMTP failure (`EmailDeliveryFailed`) or unexpected server error (`Internal server error`)
 
 Example:
 
@@ -112,6 +122,8 @@ curl -X POST "http://localhost:8000/api/v1/messages" ^
 ```
 
 ## Tests
+
+Shared routing scenarios live in `tests/routing_cases.py` (five cases, one per department). Smoke and integration routing tests import the same data.
 
 Integration (default, no Docker):
 
@@ -128,7 +140,7 @@ docker compose up -d --build
 uv run pytest -m smoke
 ```
 
-Smoke routing covers all five department addresses with the real agent. Each test run may take up to ~2 minutes on CPU with larger models.
+Smoke runs seven tests: five routing cases (real agent), OpenAPI docs, and MailHog delivery with Reply-To. Routing smoke may take several minutes on CPU with the default model.
 
 Optional env for smoke:
 
@@ -143,10 +155,25 @@ Optional env for smoke:
 
 **No silent fallback** — if the agent finishes without calling the send tool, the API returns 503 (`AgentFailedRouteMessage`). Routing to `other@example.com` is an agent decision via the tool, not a hidden server-side fallback.
 
-**Logfire** — optional tracing for FastAPI and the agent. Disabled by default.
+**Logfire** — optional tracing for FastAPI, Pydantic AI, and httpx. Disabled by default.
 
 **Exceptions with status codes** — e.g. `AgentUnavailable` and `AgentFailedRouteMessage` map to 503; `EmailDeliveryFailed` maps to 500.
 
-**Default model `llama3.2:3b`** — small and fast to pull on CPU. For reliable routing in smoke tests, `llama3.1:8b` was used successfully; smaller models may misroute edge cases. Change `MODEL_NAME` to try others.
-
 **Direct API → agent wiring** — keeps the PoC focused on agent behaviour. Dependencies are injected (`EmailAgentProtocol`, `EmailService`) so tests can use fakes without patching app internals.
+
+### Default model `llama3.1:8b`
+
+This PoC routes Polish employee messages with **tool calling** (pick department → send email). That requires the model to follow instructions reliably and call the tool with a valid enum value.
+
+During development we compared `llama3.2:3b` and `llama3.1:8b`:
+
+| Model | Observation |
+|-------|-------------|
+| `llama3.2:3b` | Faster to pull and run, but **unstable** in smoke tests: intermittent 503 (no tool call), wrong department (e.g. IT → `other@`), flaky pass rate on the same cases. |
+| `llama3.1:8b` | Slower and heavier on CPU, but **consistent** routing on the five canonical test cases. |
+
+**Decision:** default to **`llama3.1:8b`** for Docker Compose and app config. Reliability matters more than speed for this PoC — a router that sometimes fails or misroutes is worse than one that is slower but predictable.
+
+You can still override with `MODEL_NAME` in `.env` (e.g. `llama3.2:3b` for experiments), but smoke tests assume the 8B default.
+
+**Prompt format:** department inboxes in `INSTRUCTIONS` use enum `.value` (e.g. `kadry@example.com`), not Python enum names, so the model passes valid tool arguments.

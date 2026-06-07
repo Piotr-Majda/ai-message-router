@@ -58,4 +58,3 @@ def test_smtpEmailService_givenEmailMessage_sendsWithReplyTo(monkeypatch) -> Non
     assert len(fake_smtp.sent_messages) == 1
     sent = fake_smtp.sent_messages[0]
     assert sent["Reply-To"] == "jan.nowak@example.com"
-

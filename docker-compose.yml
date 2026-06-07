@@ -9,7 +9,7 @@ services:
       SMTP_HOST: mailhog
       SMTP_PORT: 1025
       MODEL_BASE_URL: http://ollama:11434/v1
-      MODEL_NAME: ${MODEL_NAME:-llama3.2:3b}
+      MODEL_NAME: ${MODEL_NAME:-llama3.1:8b}
       LOGFIRE_ENABLED: ${LOGFIRE_ENABLED:-false}
       LOGFIRE_TOKEN: ${LOGFIRE_TOKEN:-}
     depends_on:
@@ -57,7 +57,7 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_HOST: http://ollama:11434
-      MODEL_NAME: ${MODEL_NAME:-llama3.2:3b}
+      MODEL_NAME: ${MODEL_NAME:-llama3.1:8b}
     entrypoint: >
       sh -c "
       ollama pull $$MODEL_NAME

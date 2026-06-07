@@ -3,7 +3,6 @@ from typing import Optional
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 load_dotenv()
 
 
@@ -22,9 +21,9 @@ class Config(BaseSettings):
     SMTP_USERNAME: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     MODEL_BASE_URL: str = "http://localhost:11434/v1"
-    MODEL_NAME: str = "llama3.2:3b"
+    MODEL_NAME: str = "llama3.1:8b"
     LOGFIRE_ENABLED: bool = False
     LOGFIRE_TOKEN: Optional[str] = None
 
 
-config = Config() # type: ignore[call-arg]
+config = Config()  # type: ignore[call-arg]

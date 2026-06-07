@@ -17,6 +17,7 @@ def email_service() -> EmailService:
         password=config.SMTP_PASSWORD,
     )
 
+
 email_service_dep = Annotated[EmailService, Depends(email_service)]
 
 
@@ -26,5 +27,6 @@ def email_agent(email_service: email_service_dep) -> EmailAgentProtocol:
         model_name=config.MODEL_NAME,
         email_service=email_service,
     )
+
 
 email_agent_dep = Annotated[EmailAgentProtocol, Depends(email_agent)]

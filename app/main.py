@@ -12,7 +12,9 @@ from app.exceptions.exceptions import BusinessException
 _logfire_on = config.LOGFIRE_ENABLED and bool(config.LOGFIRE_TOKEN)
 
 if config.LOGFIRE_ENABLED and not config.LOGFIRE_TOKEN:
-    logging.getLogger(__name__).warning("LOGFIRE_ENABLED=true but LOGFIRE_TOKEN is missing")
+    logging.getLogger(__name__).warning(
+        "LOGFIRE_ENABLED=true but LOGFIRE_TOKEN is missing"
+    )
 
 if _logfire_on:
     logfire.configure(token=config.LOGFIRE_TOKEN, inspect_arguments=False)
@@ -53,7 +55,9 @@ async def handle_logging(request: Request, call_next):
     res_body = [section async for section in response.body_iterator]
     response.body_iterator = iterate_in_threadpool(iter(res_body))
 
-    logger.info("Response: %s %s returned %s to %s", method, url, status_code, client_ip)
+    logger.info(
+        "Response: %s %s returned %s to %s", method, url, status_code, client_ip
+    )
     if res_body and config.DEBUG:
         res_body = res_body[0].decode()
         logger.info("Response body: \n%s", res_body)
@@ -61,7 +65,9 @@ async def handle_logging(request: Request, call_next):
 
 
 @app.exception_handler(BusinessException)
-async def business_exception_handler(request: Request, exc: BusinessException) -> JSONResponse:
+async def business_exception_handler(
+    request: Request, exc: BusinessException
+) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 

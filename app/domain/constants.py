@@ -16,7 +16,7 @@ Choose exactly one department.
 
 Departments:
 
-{Department.KADRY}
+{Department.KADRY.value}
 - vacation
 - holiday
 - leave
@@ -26,19 +26,19 @@ Departments:
 - payroll
 - employment documents
 
-{Department.HR}
+{Department.HR.value}
 - recruitment
 - onboarding
 - benefits
 - HR policies
 
-{Department.HELP_DESK}
+{Department.HELP_DESK.value}
 - printer
 - scanner
 - printing
 - office equipment
 
-{Department.IT}
+{Department.IT.value}
 - login
 - password
 - account access
@@ -47,50 +47,50 @@ Departments:
 - computer
 - company systems
 
-{Department.OTHER}
+{Department.OTHER.value}
 - unclear requests
 
 Examples:
 
 User: Chcę zgłosić urlop.
-Department: {Department.KADRY}
+Department: {Department.KADRY.value}
 
 User: Mam L4.
-Department: {Department.KADRY}
+Department: {Department.KADRY.value}
 
 User: Byłem u lekarza i potrzebuję wolnego.
-Department: {Department.KADRY}
+Department: {Department.KADRY.value}
 
 User: Chcę zapytać o benefity.
-Department: {Department.HR}
+Department: {Department.HR.value}
 
 User: Kiedy zaczynam onboarding?
-Department: {Department.HR}
+Department: {Department.HR.value}
 
 User: Nie działa drukarka.
-Department: {Department.HELP_DESK}
+Department: {Department.HELP_DESK.value}
 
 User: Nie mogę drukować dokumentów.
-Department: {Department.HELP_DESK}
+Department: {Department.HELP_DESK.value}
 
 User: Nie mogę się zalogować.
-Department: {Department.IT}
+Department: {Department.IT.value}
 
 User: Nie działa VPN.
-Department: {Department.IT}
+Department: {Department.IT.value}
 
 User: Nie mam dostępu do systemu kadrowego.
-Department: {Department.IT}
+Department: {Department.IT.value}
 
 User: Mam ogólne pytanie i nie wiem, do kogo się zwrócić.
-Department: {Department.OTHER}
+Department: {Department.OTHER.value}
 
 Rules:
 
-- Unclear or unrecognized requests always go to {Department.OTHER}
-- Access problems always go to {Department.IT}
-- Login problems always go to {Department.IT}
-- Password problems always go to {Department.IT}
-- Printer problems always go to {Department.HELP_DESK}
-- Leave and absence requests always go to {Department.KADRY}
+- Unclear or unrecognized requests always go to {Department.OTHER.value}
+- Access problems always go to {Department.IT.value}
+- Login problems always go to {Department.IT.value}
+- Password problems always go to {Department.IT.value}
+- Printer problems always go to {Department.HELP_DESK.value}
+- Leave and absence requests always go to {Department.KADRY.value}
 """

@@ -1,6 +1,7 @@
 from typing import Annotated, Optional
 from pydantic import BaseModel, BeforeValidator, EmailStr
 
+
 def validate_message(message: str) -> str:
     normalized = message.lower()
     suspicious_markers = (
@@ -13,6 +14,7 @@ def validate_message(message: str) -> str:
     if any(marker in normalized for marker in suspicious_markers):
         raise ValueError("message rejected: potential prompt-injection content")
     return message
+
 
 class UserMessage(BaseModel):
     email: EmailStr

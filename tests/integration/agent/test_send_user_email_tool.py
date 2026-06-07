@@ -8,9 +8,13 @@ from tests.integration.conftest import Outbox, RecordingEmailService
 
 @pytest.mark.integration
 @pytest.mark.anyio
-async def test_sendRoutedUserEmail_givenValidRecipient_sendsOnce(outbox: Outbox) -> None:
+async def test_sendRoutedUserEmail_givenValidRecipient_sendsOnce(
+    outbox: Outbox,
+) -> None:
     recording_service = RecordingEmailService(outbox)
-    user_message = UserMessage(email="jan.nowak@example.com", message="Nie działa mi komputer")
+    user_message = UserMessage(
+        email="jan.nowak@example.com", message="Nie działa mi komputer"
+    )
     deps = RouterAgentDeps(email_service=recording_service, user_message=user_message)
 
     result = await send_routed_user_email(deps, Department.IT)
@@ -29,9 +33,13 @@ async def test_sendRoutedUserEmail_givenValidRecipient_sendsOnce(outbox: Outbox)
 
 @pytest.mark.integration
 @pytest.mark.anyio
-async def test_sendRoutedUserEmail_givenEmailAlreadySent_doesNotSendAgain(outbox: Outbox) -> None:
+async def test_sendRoutedUserEmail_givenEmailAlreadySent_doesNotSendAgain(
+    outbox: Outbox,
+) -> None:
     recording_service = RecordingEmailService(outbox)
-    user_message = UserMessage(email="jan.nowak@example.com", message="Nie działa mi komputer")
+    user_message = UserMessage(
+        email="jan.nowak@example.com", message="Nie działa mi komputer"
+    )
     deps = RouterAgentDeps(
         email_service=recording_service,
         user_message=user_message,

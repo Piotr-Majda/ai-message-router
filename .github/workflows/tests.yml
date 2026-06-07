@@ -30,10 +30,13 @@ jobs:
         run: uv run pytest
 
       - name: Start docker compose stack for smoke tests
+        env:
+          MODEL_NAME: llama3.1:8b
         run: docker compose up -d --build --wait --wait-timeout 600
 
       - name: Run smoke tests
         env:
+          MODEL_NAME: llama3.1:8b
           SMOKE_BASE_URL: http://127.0.0.1:8000
           SMOKE_MAILHOG_API: http://127.0.0.1:8025
         run: uv run pytest -m smoke

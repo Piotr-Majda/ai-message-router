@@ -9,11 +9,16 @@ from pydantic_ai.providers.ollama import OllamaProvider
 from app.agent.email_agent_protocol import EmailAgentProtocol
 from app.core.logging import setup_logging
 from app.domain.constants import Department, INSTRUCTIONS
-from app.exceptions.exceptions import AgentFailedRouteMessage, AgentUnavailable, EmailDeliveryFailed
+from app.exceptions.exceptions import (
+    AgentFailedRouteMessage,
+    AgentUnavailable,
+    EmailDeliveryFailed,
+)
 from app.models.messages import EmailMessage, UserMessage
 from app.services.email_service import EmailService
 
 logger = setup_logging("EmailAgent")
+
 
 @dataclass
 class RouterAgentDeps:
@@ -67,7 +72,9 @@ async def send_user_email_to_department(
 
 class EmailAgent(EmailAgentProtocol):
 
-    def __init__(self, model_name: str, model_url: str, email_service: EmailService) -> None:
+    def __init__(
+        self, model_name: str, model_url: str, email_service: EmailService
+    ) -> None:
         model = OllamaModel(
             model_name=model_name,
             provider=OllamaProvider(base_url=model_url),
@@ -81,11 +88,13 @@ class EmailAgent(EmailAgentProtocol):
             deps_type=RouterAgentDeps,
             retries=3,
             tools=[Tool(send_user_email_to_department, takes_ctx=True)],
-            instructions=INSTRUCTIONS
+            instructions=INSTRUCTIONS,
         )
 
     async def route_and_send(self, user_message: UserMessage) -> EmailMessage:
-        deps = RouterAgentDeps(email_service=self._email_service, user_message=user_message)
+        deps = RouterAgentDeps(
+            email_service=self._email_service, user_message=user_message
+        )
         try:
             result = await self.router_agent.run(user_message.message, deps=deps)
         except AgentRunError as err:

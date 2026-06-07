@@ -9,10 +9,15 @@ from fastapi.testclient import TestClient
 from app.agent.email_agent import EmailAgent
 from app.api.v1.dependencies import email_agent, email_service
 from app.domain.constants import Department
-from app.exceptions.exceptions import AgentFailedRouteMessage, AgentUnavailable, EmailDeliveryFailed
+from app.exceptions.exceptions import (
+    AgentFailedRouteMessage,
+    AgentUnavailable,
+    EmailDeliveryFailed,
+)
 from app.main import app
 from app.models.messages import EmailMessage, UserMessage
 from app.services.email_service import EmailService
+from tests.routing_cases import ROUTING_CASES
 
 
 @dataclass
@@ -38,7 +43,13 @@ class FailingEmailService(EmailService):
 class FakeEmailAgent:
     """Deterministic routing for API integration tests (no Ollama)."""
 
-    def __init__(self, email_service: RecordingEmailService | FailingEmailService) -> None:
+    _ROUTING_BY_MESSAGE = {
+        case.user_message.message: case.expected_recipient for case in ROUTING_CASES
+    }
+
+    def __init__(
+        self, email_service: RecordingEmailService | FailingEmailService
+    ) -> None:
         self._email_service = email_service
 
     async def route_and_send(self, user_message: UserMessage) -> EmailMessage:
@@ -57,30 +68,9 @@ class FakeEmailAgent:
         return email_message
 
     def _resolve_department(self, message: str) -> Department:
-        normalized = message.lower()
-
-        if any(marker in normalized for marker in ("drukować", "drukow", "druk", "drukarka")):
-            return Department.HELP_DESK
-
-        if any(marker in normalized for marker in ("wolnego", "urlop", "lekarz", "wizyt")):
-            return Department.KADRY
-
-        if any(marker in normalized for marker in ("benefit", "onboarding", "rekrut")):
-            return Department.HR
-
-        if "dostęp" in normalized or any(
-            marker in normalized for marker in ("logowanie", "hasło", "konto")
-        ):
-            return Department.IT
-
-        if any(marker in normalized for marker in ("komputer", "nie działa", "system")):
-            return Department.IT
-
-        if any(
-            marker in normalized
-            for marker in ("ogólne pytanie", "nie wiem, do kogo", "nie wiem do kogo")
-        ):
-            return Department.OTHER
+        known_recipient = self._ROUTING_BY_MESSAGE.get(message)
+        if known_recipient is not None:
+            return known_recipient
 
         return Department.IT
 

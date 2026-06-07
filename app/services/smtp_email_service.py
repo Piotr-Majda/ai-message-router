@@ -6,7 +6,13 @@ from app.services.email_service import EmailService
 
 
 class SMTPEmailService(EmailService):
-    def __init__(self, host: str, port: int, username: str | None = None, password: str | None = None):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        username: str | None = None,
+        password: str | None = None,
+    ):
         self.host = host
         self.port = port
         self.username = username
