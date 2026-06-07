@@ -19,3 +19,8 @@ class AgentUnavailable(BusinessException):
 class EmailDeliveryFailed(BusinessException):
     message = "Email delivery failed"
     status_code = 500
+
+
+class AgentFailedRouteMessage(BusinessException):
+    message = "Agent fail to route or send message"
+    status_code = 503

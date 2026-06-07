@@ -1,9 +1,8 @@
-from abc import ABC, abstractmethod
+from typing import Protocol
 from app.models.messages import EmailMessage
 
 
-class EmailService(ABC):
+class EmailService(Protocol):
     
-    @abstractmethod
     def send(self, message: EmailMessage) -> None:
         pass

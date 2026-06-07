@@ -5,21 +5,33 @@ HTTP API that routes employee messages to a department email using a local LLM (
 ## What it does
 
 - Accept `email` and `message`
-- Validate input
-- Classify with an agent and pick a department address
-- Send email (Reply-To = sender)
+- Validate input (including basic prompt-injection checks on `message`)
+- Route with an AI agent (Ollama) that calls a tool to send exactly one email
+- Set Reply-To to the sender from the request
 - Return `status`, `recipient`, `reply_to`
+
+## Department addresses
+
+The agent may route to one of:
+
+- `kadry@example.com`
+- `human-resources@example.com`
+- `help-desk@example.com`
+- `it@example.com`
+- `other@example.com` (when the request is unclear or unrecognized)
 
 ## Layout
 
 - `app/api/v1` — HTTP routes (`messages.py`) and dependencies
-- `app/services` — orchestration (`EmailRouterService`) and SMTP
-- `app/agent` — routing agent (Pydantic AI, structured output to `DepartmentEmail`)
-- `app/domain` — routing rules and prompts
-- `app/models` — request types
+- `app/agent` — `EmailAgent`, tool calling, `EmailAgentProtocol`
+- `app/services` — SMTP (`EmailService` / `SMTPEmailService`)
+- `app/domain` — `Department` enum and agent prompt (`INSTRUCTIONS`)
+- `app/models` — request and email types
 - `app/exceptions` — errors with HTTP status codes
 
-Flow: API → `EmailRouterService` → agent + SMTP.
+Flow: API → agent (tool) → SMTP.
+
+The HTTP handler calls `EmailAgentProtocol.route_and_send()` directly. There is no separate application service layer in this PoC.
 
 ## Run with Docker
 
@@ -34,7 +46,7 @@ First start pulls the Ollama model (`llama3.2:3b` by default). This can take a w
 Another model:
 
 ```bash
-MODEL_NAME=llama3.2:1b docker compose up -d --build
+MODEL_NAME=llama3.1:8b docker compose up -d --build
 ```
 
 Or set `MODEL_NAME` in `.env`.
@@ -48,12 +60,15 @@ Or set `MODEL_NAME` in `.env`.
 
 | Variable | Default | Notes |
 |----------|---------|--------|
-| SMTP_HOST | localhost | mailhog in compose |
+| SMTP_HOST | localhost | `mailhog` inside compose |
 | SMTP_PORT | 1025 | |
-| MODEL_BASE_URL | http://localhost:11434/v1 | ollama service in compose |
-| MODEL_NAME | llama3.2:3b | pulled before app starts |
+| SMTP_USERNAME | | optional |
+| SMTP_PASSWORD | | optional |
+| MODEL_BASE_URL | http://localhost:11434/v1 | `http://ollama:11434/v1` in compose |
+| MODEL_NAME | llama3.2:3b | pulled by `ollama-pull` before app starts |
 | LOGFIRE_ENABLED | false | |
-| LOGFIRE_TOKEN | | needed when Logfire is on |
+| LOGFIRE_TOKEN | | required when Logfire is on |
+| DEBUG | false | logs response bodies when true |
 
 After editing `.env`:
 
@@ -61,7 +76,7 @@ After editing `.env`:
 docker compose up -d --no-deps --force-recreate app
 ```
 
-Logfire is optional. Set `LOGFIRE_ENABLED=true` and `LOGFIRE_TOKEN` in `.env` to trace FastAPI, the agent, and httpx calls to Ollama. Useful when checking agent input/output during development. Off by default so compose works without an account.
+Logfire is optional. Set `LOGFIRE_ENABLED=true` and `LOGFIRE_TOKEN` in `.env` to trace FastAPI, the agent, and httpx calls to Ollama. Off by default so compose works without an account.
 
 ## API
 
@@ -84,7 +99,9 @@ POST `/api/v1/messages`
 }
 ```
 
-422 — invalid input. 503 — agent failure (`AgentUnavailable`). 500 — SMTP or other server error.
+- **422** — invalid input (bad email, rejected message content)
+- **503** — agent failure (`AgentUnavailable`, `AgentFailedRouteMessage` when the send tool was not called)
+- **500** — SMTP failure (`EmailDeliveryFailed`) or other server error
 
 Example:
 
@@ -102,6 +119,8 @@ Integration (default, no Docker):
 uv run pytest
 ```
 
+By default pytest excludes smoke tests (`-m "not smoke"` in `pyproject.toml`).
+
 Smoke (needs running compose + Ollama):
 
 ```bash
@@ -109,18 +128,25 @@ docker compose up -d --build
 uv run pytest -m smoke
 ```
 
-Optional: `SMOKE_BASE_URL`, `SMOKE_MAILHOG_API`.
+Smoke routing covers all five department addresses with the real agent. Each test run may take up to ~2 minutes on CPU with larger models.
+
+Optional env for smoke:
+
+- `SMOKE_BASE_URL` (default `http://localhost:8000`)
+- `SMOKE_MAILHOG_API` (default `http://localhost:8025`)
 
 ## Why it is built this way
 
-Pydantic AI — same stack as the API (FastAPI + Pydantic models). One way to define request types, agent output, and validation.
+**Pydantic AI** — same stack as the API (FastAPI + Pydantic). Request types, tool parameters, and validation share one model style.
 
-Structured output — the agent returns a `DepartmentEmail` Pydantic model (`output_type=...`), not free-form text. That keeps the recipient on the allowed list and makes routing results consistent. Pydantic AI may use internal mechanisms (including its own “tools”) to validate structured output against the schema; that is framework internals, not a user-facing “send email” tool. Email is sent by `EmailRouterService` via SMTP after classification.
+**Tool calling** — the agent picks a department and sends mail through `send_user_email_to_department`. The recipient is constrained by a `Department` enum in the tool schema. Body, sender, and Reply-To are taken from the HTTP request in tool code, not from the LLM.
 
-Logfire — optional tracing for FastAPI and the agent while testing routing behaviour. Disabled by default.
+**No silent fallback** — if the agent finishes without calling the send tool, the API returns 503 (`AgentFailedRouteMessage`). Routing to `other@example.com` is an agent decision via the tool, not a hidden server-side fallback.
 
-Exceptions with status codes — e.g. `AgentUnavailable` maps to 503 so HTTP status is defined on the error type, not scattered in handlers.
+**Logfire** — optional tracing for FastAPI and the agent. Disabled by default.
 
-Default model `llama3.2:3b` — smaller and faster to pull and run on CPU than larger models. Routing is a short classification task; bigger models are slower with limited gain here. Prompt rules in `app/domain/constants.py` aim to keep routing accurate without a heavy model. Change `MODEL_NAME` to try others.
+**Exceptions with status codes** — e.g. `AgentUnavailable` and `AgentFailedRouteMessage` map to 503; `EmailDeliveryFailed` maps to 500.
 
-Service layer — `EmailRouterService` coordinates agent and email. Dependencies are injected so tests can use fakes without patching the app internals.
+**Default model `llama3.2:3b`** — small and fast to pull on CPU. For reliable routing in smoke tests, `llama3.1:8b` was used successfully; smaller models may misroute edge cases. Change `MODEL_NAME` to try others.
+
+**Direct API → agent wiring** — keeps the PoC focused on agent behaviour. Dependencies are injected (`EmailAgentProtocol`, `EmailService`) so tests can use fakes without patching app internals.

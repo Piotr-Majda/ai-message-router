@@ -3,7 +3,7 @@ import os
 import httpx
 import pytest
 
-from app.domain.constants import HELP_DESK_EMAIL, IT_EMAIL, KADRY_EMAIL
+from app.domain.constants import Department
 from tests.smoke.conftest import SMOKE_LLM_TIMEOUT
 
 
@@ -17,19 +17,23 @@ def _base_url() -> str:
     [
         (
             "Potrzebuję wolnego jutro, bo mam wizytę u lekarza.",
-            KADRY_EMAIL,
+            Department.KADRY,
+        ),
+        (
+            "Chcę zapytać o benefity.",
+            Department.HR,
         ),
         (
             "Nie mogę drukować dokumentów i przez to nie mogę przygotować umowy.",
-            HELP_DESK_EMAIL,
-        ),
-        (
-            "Mam problem z dostępem do systemu kadrowego.",
-            IT_EMAIL,
+            Department.HELP_DESK,
         ),
         (
             "Nie działa mi komputer",
-            IT_EMAIL,
+            Department.IT,
+        ),
+        (
+            "Mam ogólne pytanie i nie wiem, do kogo się zwrócić.",
+            Department.OTHER,
         ),
     ],
 )
